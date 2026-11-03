@@ -30,20 +30,21 @@ jobs:
 
     - name: Stage 1 - Static Analysis & PEP 8 Check (flake8)
       run: |
+        flake8 core/week6_ci.py tests/test_week6.py --count --show-source --statistics
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     - name: Stage 2 - Static Type Checking (mypy)
       run: |
-        mypy --ignore-missing-imports calculator_engine.py
+        mypy --ignore-missing-imports core/week6_ci.py
 
     - name: Stage 3 - SAST Vulnerability Scan (bandit)
       run: |
-        bandit -r calculator_engine.py -ll
+        bandit -r core/week6_ci.py -ll
 
     - name: Stage 4 - Automated Test Execution & Code Coverage
       run: |
-        coverage run -m unittest discover -s . -p "test_*.py"
+        coverage run --source=core.week6_ci -m unittest discover -s . -p "test_*.py"
         coverage report --fail-under=90 -m
 
   distribution-package:
@@ -65,7 +66,7 @@ jobs:
 
     - name: Compile Distribution Tarball & Wheel
       run: |
-        python -c 'open("setup.py", "w").write("""from setuptools import setup\nsetup(name=\"quant_engine\", version=\"1.0.0\", py_modules=[\"calculator_engine\"])\n""")'
+        python -c 'open("setup.py", "w").write("""from setuptools import setup\nsetup(name=\"quant_engine\", version=\"1.0.0\", py_modules=[\"calculator_engine\", \"calc\"], packages=[\"core\"])\n""")'
         python -m build
 
     - name: Upload Build Artifacts
