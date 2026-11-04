@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools==75.8.0", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "automated-quantitative-engine"
+dynamic = ["version"]
+description = "Deterministic quantitative analytics and DevSecOps CI controls"
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "streamlit==1.64.0",
+    "pandas==2.2.3",
+]
+
+[tool.setuptools]
+py-modules = [
+    "calc",
+    "calculator_engine",
+    "engine",
+    "quant_engine",
+    "telemetry",
+]
+packages = ["core"]
+
+[tool.setuptools.dynamic]
+version = {attr = "telemetry.__version__"}
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+ignore_missing_imports = true
+files = [
+    "quant_engine.py",
+    "telemetry.py",
+    "engine.py",
+    "calculator_engine.py",
+    "calc.py",
+    "core/week6_ci.py",
+    "app.py",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["quant_engine", "telemetry", "engine"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+skip_covered = false

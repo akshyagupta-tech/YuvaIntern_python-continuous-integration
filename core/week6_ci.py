@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
-
 Number = Union[int, float]
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CI_WORKFLOW_PATH = PROJECT_ROOT / ".github" / "workflows" / "ci.yml"
@@ -212,9 +211,7 @@ def run_local_pipeline(
                 timeout=300,
             )
             output = "\n".join(
-                text
-                for text in (completed.stdout, completed.stderr)
-                if text
+                text for text in (completed.stdout, completed.stderr) if text
             ).strip()
             result = PipelineResult(
                 name=name,
@@ -262,9 +259,7 @@ def _run_streamlit_dashboard() -> None:  # pragma: no cover
             f"https://github.com/{GITHUB_REPOSITORY}/actions/workflows/"
             f"{GITHUB_WORKFLOW}"
         )
-        st.markdown(
-            f"[![GitHub Actions status]({badge_url})]({actions_url})"
-        )
+        st.markdown(f"[![GitHub Actions status]({badge_url})]({actions_url})")
         st.link_button("Open GitHub Actions", actions_url)
         st.caption(
             "If the badge is blocked, use the Actions link for the latest run."

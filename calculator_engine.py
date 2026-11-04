@@ -1,7 +1,7 @@
 """
 Enterprise Computational & Quantitative Finance Engine
 Author: Akshya Gupta (YuvaIntern Junior Python Developer Track - Week 6)
-Engineered for strict static type checking, automated coverage enforcement, and CI validation.
+Engineered for static typing, coverage enforcement, and CI validation.
 """
 
 from __future__ import annotations
@@ -10,8 +10,10 @@ from typing import List, Union, Dict
 
 Number = Union[int, float]
 
+
 class ComputationError(ValueError):
-    """Domain exception raised upon arithmetic violations or corrupted inputs."""
+    """Raised when arithmetic inputs are invalid."""
+
 
 class QuantitativeEngine:
     @staticmethod
@@ -29,27 +31,49 @@ class QuantitativeEngine:
     @staticmethod
     def divide(a: Number, b: Number) -> float:
         if b == 0:
-            raise ComputationError("ZeroDivisionError: Denominator cannot be zero.")
+            raise ComputationError(
+                "ZeroDivisionError: Denominator cannot be zero."
+            )
         return a / b
 
     @staticmethod
-    def calculate_compound_interest(principal: float, annual_rate_pct: float, years: int, compounds_per_year: int = 1) -> float:
+    def calculate_compound_interest(
+        principal: float,
+        annual_rate_pct: float,
+        years: int,
+        compounds_per_year: int = 1,
+    ) -> float:
         """Calculates compound interest: A = P(1 + r/n)^(nt) - P."""
-        if principal <= 0 or annual_rate_pct < 0 or years < 0 or compounds_per_year <= 0:
-            raise ComputationError("Financial variables must be non-negative, and compounding frequency > 0.")
+        if (
+            principal <= 0
+            or annual_rate_pct < 0
+            or years < 0
+            or compounds_per_year <= 0
+        ):
+            raise ComputationError(
+                "Financial values must be non-negative and frequency positive."
+            )
         rate_decimal = annual_rate_pct / 100.0
-        amount = principal * math.pow((1 + (rate_decimal / compounds_per_year)), (compounds_per_year * years))
+        amount = principal * math.pow(
+            (1 + (rate_decimal / compounds_per_year)),
+            (compounds_per_year * years),
+        )
         return round(amount - principal, 2)
 
     @staticmethod
     def compute_dataset_variance(series: List[Number]) -> Dict[str, float]:
-        """Calculates mean, sample variance, and standard deviation defensively."""
+        """Calculate mean, sample variance, and standard deviation."""
         if not isinstance(series, list) or len(series) < 2:
-            raise ComputationError("Variance calculation requires a list containing at least two numeric values.")
+            raise ComputationError(
+                "Variance requires a list containing at least two values."
+            )
 
         for val in series:
             if not isinstance(val, (int, float)):
-                raise ComputationError(f"Unsupported data type detected in numeric sequence: {type(val).__name__}")
+                raise ComputationError(
+                    "Unsupported data type in numeric sequence: "
+                    f"{type(val).__name__}"
+                )
 
         n = len(series)
         mean_val = sum(series) / n
@@ -60,5 +84,5 @@ class QuantitativeEngine:
         return {
             "mean": round(mean_val, 4),
             "variance": round(variance, 4),
-            "std_deviation": round(std_dev, 4)
+            "std_deviation": round(std_dev, 4),
         }

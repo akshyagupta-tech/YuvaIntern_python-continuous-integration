@@ -1,5 +1,12 @@
 name: Enterprise Python CI/CD Pipeline
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [ "main" ]
@@ -22,30 +29,55 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+        cache: pip
+        cache-dependency-path: |
+          requirements.txt
+          requirements-dev.txt
 
-    - name: Install Linting, SAST & Testing Dependencies
+    - name: Install Pinned Runtime and Quality Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 mypy bandit coverage build
+        python -m pip install -r requirements.txt -r requirements-dev.txt
 
-    - name: Stage 1 - Static Analysis & PEP 8 Check (flake8)
-      run: |
-        flake8 core/week6_ci.py tests/test_week6.py --count --show-source --statistics
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Prepare CI Artifacts
+      run: mkdir -p artifacts
 
-    - name: Stage 2 - Static Type Checking (mypy)
-      run: |
-        mypy --ignore-missing-imports core/week6_ci.py
+    - name: Strict PEP 8 Gate
+      run: python -m flake8 . --count --max-line-length=79 --statistics
 
-    - name: Stage 3 - SAST Vulnerability Scan (bandit)
-      run: |
-        bandit -r core/week6_ci.py -ll
+    - name: Strict Static Type Gate
+      run: >-
+        python -m mypy --strict --ignore-missing-imports
+        quant_engine.py telemetry.py engine.py calculator_engine.py calc.py
+        core/week6_ci.py app.py
 
-    - name: Stage 4 - Automated Test Execution & Code Coverage
+    - name: SAST Security Gate
+      run: python -m bandit -r . -x ./.git,./tests -ll
+
+    - name: Dependency Vulnerability Audit
+      run: pip-audit -r requirements.txt --format json --output artifacts/pip-audit.json
+
+    - name: Unit Tests and Branch-Aware Coverage Gate
       run: |
-        coverage run --source=core.week6_ci -m unittest discover -s . -p "test_*.py"
-        coverage report --fail-under=90 -m
+        python -m coverage run --branch --source=quant_engine,telemetry,engine -m unittest discover -s . -p "test_*.py" -v 2>&1 | tee artifacts/test-results.txt
+        python -m coverage report --fail-under=90 -m
+        python -m coverage html --directory artifacts/coverage
+        python -m coverage xml -o artifacts/coverage.xml
+
+    - name: Health Check and Build Metadata
+      run: |
+        python -m engine --check | tee artifacts/health-check.json
+        python -m engine --metadata > artifacts/build-metadata.json
+        python -m engine --benchmark > artifacts/benchmark-report.json
+
+    - name: Archive Test and Coverage Reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: quality-reports-python-${{ matrix.python-version }}
+        path: artifacts/
+        if-no-files-found: warn
+        retention-days: 14
 
   distribution-package:
     name: Automated Packaging & Wheel Artifact Creation
@@ -56,18 +88,16 @@ jobs:
     - name: Checkout Source Code
       uses: actions/checkout@v4
 
-    - name: Setup Python 3.11
+    - name: Setup Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: "3.11"
+        python-version: "3.12"
 
-    - name: Install Build Module
-      run: pip install build
+    - name: Install Build Dependencies
+      run: python -m pip install -r requirements.txt -r requirements-dev.txt
 
-    - name: Compile Distribution Tarball & Wheel
-      run: |
-        python -c 'open("setup.py", "w").write("""from setuptools import setup\nsetup(name=\"quant_engine\", version=\"1.0.0\", py_modules=[\"calculator_engine\", \"calc\"], packages=[\"core\"])\n""")'
-        python -m build
+    - name: Build Wheel and Source Distribution
+      run: python -m build
 
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
